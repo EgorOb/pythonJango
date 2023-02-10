@@ -1,11 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from .models import CartItemShop, Cart, Product
-
+from decimal import Decimal
 
 def fill_card_in_session(request):
     cart = request.session.get('cart', {})
-    if not cart:
+    if request.user.is_authenticated and not cart:
         cart_items = CartItemShop.objects.filter(cart__user=request.user)
         for item in cart_items:
             cart[item.product.id] = item.quantity
@@ -15,7 +15,7 @@ def fill_card_in_session(request):
 
 def fill_id_card_in_session(request):
     id_cart = request.session.get('id_cart', None)
-    if not id_cart:
+    if request.user.is_authenticated and not id_cart:
         id_cart = Cart.objects.get(user=request.user).id
         request.session['id_cart'] = id_cart
     return id_cart
@@ -23,19 +23,20 @@ def fill_id_card_in_session(request):
 
 def save_product_in_cart(request, product_id):
     cart = fill_card_in_session(request)
-    cart_items = CartItemShop.objects.filter(cart__user=request.user,
-                                             product__id=product_id)
-    cart[product_id] = cart.get(product_id, 0) + 1
-    request.session['cart'] = cart
+    if request.user.is_authenticated:
+        cart_items = CartItemShop.objects.filter(cart__user=request.user,
+                                                 product__id=product_id)
+        if cart_items:
+            cart_item = cart_items[0]
+            cart_item.quantity += 1
+        else:
+            product = get_object_or_404(Product, id=product_id)
+            cart_user = get_object_or_404(Cart, user=request.user)
+            cart_item = CartItemShop(cart=cart_user, product=product)
+        cart_item.save()
 
-    if cart_items:
-        cart_item = cart_items[0]
-        cart_item.quantity += 1
-    else:
-        product = get_object_or_404(Product, id=product_id)
-        cart_user = get_object_or_404(Cart, user=request.user)
-        cart_item = CartItemShop(cart=cart_user, product=product)
-    cart_item.save()
+    cart[str(product_id)] = cart.get(str(product_id), 0) + 1
+    request.session['cart'] = cart
 
 
 class ViewCart(View):
@@ -48,8 +49,12 @@ class ViewCart(View):
             data = []
         total_price_no_discount = sum(item['product'].price * item['quantity']
                                       for item in data)
+        if not total_price_no_discount:
+            total_price_no_discount = Decimal("0.00")
         total_discount = sum(item['product'].price * item['product'].discount * item['quantity']
                              for item in data if item['product'].discount is not None) / 100
+        if not total_discount:
+            total_discount = Decimal("0.00")
         total_sum = total_price_no_discount - total_discount
         context = {'cart_items': data,
                    'total_price_no_discount': total_price_no_discount,
@@ -75,10 +80,11 @@ class ViewCartDel(View):
     def get(self, request, item_id):
         cart = fill_card_in_session(request)
         cart_id = fill_id_card_in_session(request)
-        cart_item = get_object_or_404(CartItemShop, cart__id=cart_id, product__id=item_id)
-        cart.pop(str(cart_item.product.id))
+        if request.user.is_authenticated:
+            cart_item = get_object_or_404(CartItemShop, cart__id=cart_id, product__id=item_id)
+            cart_item.delete()
+        cart.pop(str(item_id))
         request.session["cart"] = cart
-        cart_item.delete()
         return redirect('cart_shop:cart')
 
 
