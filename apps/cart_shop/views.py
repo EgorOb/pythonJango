@@ -3,6 +3,53 @@ from django.views import View
 from .models import CartItemShop, Cart, Product
 from decimal import Decimal
 
+from rest_framework import viewsets, response
+from rest_framework.permissions import IsAuthenticated
+from .serializers import CartSerializer
+
+
+class CartViewSet(viewsets.ModelViewSet):
+    queryset = CartItemShop.objects.all()
+    serializer_class = CartSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return self.queryset.filter(cart__user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        # product = Product.objects.get(id=request.data.get('product'))
+        cart_items = CartItemShop.objects.filter(cart__user=request.user,
+                                                 product__id=request.data.get('product'))
+        if cart_items:
+            cart_item = cart_items[0]
+            if request.data.get('quantity'):
+                cart_item.quantity += request.data.get('quantity')
+            else:
+                cart_item.quantity += 1
+        else:
+            product = get_object_or_404(Product, id=request.data.get('product'))
+            cart_user = get_object_or_404(Cart, user=request.user)
+
+            if request.data.get('quantity'):
+                cart_item = CartItemShop(cart=cart_user, product=product, quantity=request.data.get('quantity'))
+            else:
+                cart_item = CartItemShop(cart=cart_user, product=product)
+        cart_item.save()
+
+
+
+
+        # cart_items = CartItemShop.objects.filter(cart__user=request.user,
+        #                                          product__id=request.data.get('product_id'))
+
+        # cart, created = Cart.objects.get_or_create(
+        #     user=request.user,
+        #     defaults={'status': 'open'}
+        # )
+        # cart.products.add(product)
+        return response.Response({'message': 'Product added to cart'})
+
+
 def fill_card_in_session(request):
     cart = request.session.get('cart', {})
     if request.user.is_authenticated and not cart:

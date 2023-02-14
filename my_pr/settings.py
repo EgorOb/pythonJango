@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'apps.checkout',
     'apps.home',
     'apps.shop',
-    'apps.auth_shop'
+    'apps.auth_shop',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

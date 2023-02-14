@@ -1,7 +1,12 @@
-from django.urls import path
-from .views import ViewCart, ViewWishlist, ViewCartBuy, ViewCartDel, ViewCartAdd
+from django.urls import path, include
+from .views import ViewCart, ViewWishlist, ViewCartBuy, ViewCartDel, ViewCartAdd, CartViewSet
+from rest_framework import routers
 
 app_name = 'cart_shop'
+
+router = routers.DefaultRouter()
+router.register(r'cart', CartViewSet)
+
 
 urlpatterns = [
     path('', ViewCart.as_view(), name='cart'),
