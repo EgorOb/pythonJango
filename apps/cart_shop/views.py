@@ -17,7 +17,6 @@ class CartViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(cart__user=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        # product = Product.objects.get(id=request.data.get('product'))
         cart_items = CartItemShop.objects.filter(cart__user=request.user,
                                                  product__id=request.data.get('product'))
         if cart_items:
@@ -35,19 +34,7 @@ class CartViewSet(viewsets.ModelViewSet):
             else:
                 cart_item = CartItemShop(cart=cart_user, product=product)
         cart_item.save()
-
-
-
-
-        # cart_items = CartItemShop.objects.filter(cart__user=request.user,
-        #                                          product__id=request.data.get('product_id'))
-
-        # cart, created = Cart.objects.get_or_create(
-        #     user=request.user,
-        #     defaults={'status': 'open'}
-        # )
-        # cart.products.add(product)
-        return response.Response({'message': 'Product added to cart'})
+        return response.Response({'message': 'Product added to cart'}, status=201)
 
 
 def fill_card_in_session(request):
