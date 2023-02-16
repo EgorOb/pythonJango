@@ -36,6 +36,16 @@ class CartViewSet(viewsets.ModelViewSet):
         cart_item.save()
         return response.Response({'message': 'Product added to cart'}, status=201)
 
+    def update(self, request, *args, **kwargs):
+        cart_item = get_object_or_404(CartItemShop, id=kwargs['pk'])
+        if request.data.get('quantity'):
+            cart_item.quantity = request.data['quantity']
+        if request.data.get('product'):
+            product = get_object_or_404(Product, id=request.data['product'])
+            cart_item.product = product
+        cart_item.save()
+        return response.Response({'message': 'Product change to cart'}, status=201)
+
 
 def fill_card_in_session(request):
     cart = request.session.get('cart', {})
