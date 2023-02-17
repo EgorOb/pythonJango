@@ -46,6 +46,11 @@ class CartViewSet(viewsets.ModelViewSet):
         cart_item.save()
         return response.Response({'message': 'Product change to cart'}, status=201)
 
+    def destroy(self, request, *args, **kwargs):
+        cart_item = get_object_or_404(CartItemShop, id=kwargs['pk'])
+        cart_item.delete()
+        return response.Response({'message': 'Product delete from cart'}, status=201)
+
 
 def fill_card_in_session(request):
     cart = request.session.get('cart', {})
